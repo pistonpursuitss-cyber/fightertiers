@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PvP Tiers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#1b2130; --panel:#232b3d; --line:#34405a; --text:#e8ecf4; --mute:#8b97b0;
+  --t1:#f5b83a; --t2:#c9d3e6; --t3:#d58a4a; --t4:#5fa8e0; --t5:#7d8aa3;
+}
+@media (prefers-color-scheme: light){
+  :root{ --bg:#eef1f7; --panel:#fff; --line:#d3d9e6; --text:#1b2130; --mute:#5b6783;
+    --t1:#b87d00; --t2:#5d6a85; --t3:#a45a1e; --t4:#1f72b8; --t5:#6b7790; }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:16px/1.5 Barlow,system-ui,sans-serif;min-height:100vh}
+header{max-width:1200px;margin:0 auto;padding:32px 20px 12px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+h1{font:700 34px/1 "Pixelify Sans",monospace;margin:0;letter-spacing:.5px}
+#status{color:var(--mute);font-size:14px}
+#status b{display:inline-block;width:8px;height:8px;background:#46c36b;margin-right:6px}
+#status.err b{background:#e5574f}
+input[type=search]{background:var(--panel);border:2px solid var(--line);color:var(--text);padding:9px 12px;font:inherit;width:220px}
+input[type=search]:focus-visible,button:focus-visible{outline:2px solid var(--t4);outline-offset:2px}
+nav{max-width:1200px;margin:0 auto;padding:8px 20px;display:flex;gap:6px;flex-wrap:wrap}
+nav button{background:var(--panel);color:var(--mute);border:2px solid var(--line);padding:8px 16px;font:600 15px Barlow,sans-serif;cursor:pointer}
+nav button[aria-pressed=true]{color:var(--text);border-color:var(--t4);background:var(--bg)}
+main{max-width:1200px;margin:0 auto;padding:12px 20px 60px}
+.badge{display:inline-block;min-width:38px;text-align:center;padding:1px 6px;font:700 14px "Pixelify Sans",monospace;border:2px solid currentColor}
+.t1{color:var(--t1)}.t2{color:var(--t2)}.t3{color:var(--t3)}.t4{color:var(--t4)}.t5{color:var(--t5)}
+.lt{opacity:.7}
+.who{display:flex;align-items:center;gap:10px;min-width:0}
+.who img{width:32px;height:32px;image-rendering:pixelated;flex:none}
+.who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank{display:grid;gap:6px}
+.row{display:grid;grid-template-columns:44px minmax(140px,1.2fr) 70px 3fr;gap:12px;align-items:center;background:var(--panel);border:2px solid var(--line);padding:8px 14px}
+.row .n{font:700 20px "Pixelify Sans",monospace;color:var(--mute)}
+.row:nth-child(-n+3) .n{color:var(--t1)}
+.pts{color:var(--mute);font-size:14px}
+.badges{display:flex;flex-wrap:wrap;gap:6px}
+.badges small{color:var(--mute);margin-right:4px;font-size:13px}
+.cols{display:grid;grid-template-columns:repeat(5,minmax(190px,1fr));gap:10px;overflow-x:auto;padding-bottom:8px}
+.col{background:var(--panel);border:2px solid var(--line);border-top-width:6px}
+.col h2{font:700 22px "Pixelify Sans",monospace;margin:0;padding:10px 14px;border-bottom:2px solid var(--line)}
+.col h3{font:600 13px Barlow,sans-serif;color:var(--mute);margin:0;padding:8px 14px 2px}
+.col .who{padding:5px 14px}
+.empty{color:var(--mute);padding:6px 14px 10px;font-size:14px}
+.note{color:var(--mute);padding:40px 0;text-align:center}
+@media(max-width:700px){.row{grid-template-columns:34px 1fr 60px}.row .badges{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<header>
+  <h1>PvP Tiers</h1>
+  <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+    <span id="status"><b></b>Loading</span>
+    <input id="q" type="search" placeholder="Search players" aria-label="Search players">
+  </div>
+</header>
+<nav id="tabs" aria-label="Gamemodes"></nav>
+<main id="view"></main>
+
+<script>
+const TIERS=['HT1','LT1','HT2','LT2','HT3','LT3','HT4','LT4','HT5','LT5'];
+const PTS={HT1:60,LT1:44,HT2:30,LT2:20,HT3:10,LT3:6,HT4:4,LT4:3,HT5:2,LT5:1};
+const POLL_MS=30000;
+let data=null,last='',view='Overall',q='';
+
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const badge=t=>`<span class="badge t${t[2]} ${t[0]==='L'?'lt':''}">${t}</span>`;
+const who=n=>`<div class="who"><img src="https://mc-heads.net/avatar/${encodeURIComponent(n)}/64" alt="" loading="lazy" width="32" height="32"><span>${esc(n)}</span></div>`;
+const match=n=>n.toLowerCase().includes(q.toLowerCase());
+
+function overall(){
+  const rows=Object.entries(data.players).filter(([n])=>match(n)).map(([n,m])=>({n,m,
+    pts:Object.values(m).reduce((s,t)=>s+(PTS[t]||0),0)})).sort((a,b)=>b.pts-a.pts||a.n.localeCompare(b.n));
+  if(!rows.length) return '<p class="note">No players found.</p>';
+  return '<div class="rank">'+rows.map((r,i)=>`<div class="row"><span class="n">${i+1}</span>${who(r.n)}<span class="pts">${r.pts} pts</span>
+    <div class="badges">${data.gamemodes.filter(g=>r.m[g]).map(g=>`<span><small>${esc(g)}</small>${badge(r.m[g])}</span>`).join('')}</div></div>`).join('')+'</div>';
+}
+
+function mode(g){
+  let h='<div class="cols">';
+  for(let t=1;t<=5;t++){
+    h+=`<section class="col t${t}" style="border-top-color:currentColor"><h2>Tier ${t}</h2>`;
+    for(const p of ['HT','LT']){
+      const names=Object.entries(data.players).filter(([n,m])=>m[g]===p+t&&match(n)).map(([n])=>n).sort();
+      h+=`<h3>${p==='HT'?'High':'Low'} tier</h3>`+(names.length?names.map(who).join(''):'<div class="empty">Empty</div>');
+    }
+    h+='</section>';
+  }
+  return h+'</div>';
+}
+
+function render(){
+  if(!data) return;
+  const modes=['Overall',...data.gamemodes];
+  if(!modes.includes(view)) view='Overall';
+  document.getElementById('tabs').innerHTML=modes.map(m=>`<button aria-pressed="${m===view}" data-m="${esc(m)}">${esc(m)}</button>`).join('');
+  document.getElementById('view').innerHTML=view==='Overall'?overall():mode(view);
+}
+
+document.getElementById('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b){view=b.dataset.m;render();}});
+document.getElementById('q').addEventListener('input',e=>{q=e.target.value;render();});
+
+async function load(){
+  const s=document.getElementById('status');
+  try{
+    const r=await fetch('data/players.json?t='+Date.now(),{cache:'no-store'});
+    if(!r.ok) throw new Error(r.status);
+    const txt=await r.text();
+    if(txt!==last){last=txt;data=JSON.parse(txt);render();}
+    s.className='';s.innerHTML='<b></b>Live, updated '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  }catch(e){
+    s.className='err';s.innerHTML='<b></b>Can\u2019t load tiers. Retrying';
+  }
+}
+load();setInterval(load,POLL_MS);
+</script>
+</body>
+</html>

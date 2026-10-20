@@ -1,0 +1,9 @@
+{
+  "gamemodes": ["Crystal", "Sword", "Axe", "Mace", "Pot", "SMP"],
+  "players": {
+    "Notch": { "Sword": "HT1", "Crystal": "LT2", "Axe": "HT3" },
+    "jeb_": { "Axe": "HT1", "Mace": "LT2", "Sword": "LT4" },
+    "Dream": { "Crystal": "HT2", "Pot": "HT3" },
+    "Technoblade": { "Sword": "LT1", "Pot": "HT1", "SMP": "HT2" }
+  }
+}

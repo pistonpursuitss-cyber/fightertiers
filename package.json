@@ -1,0 +1,8 @@
+{
+  "name": "tier-bot",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": { "start": "node --env-file=.env index.js" },
+  "dependencies": { "discord.js": "^14.16.0" },
+  "engines": { "node": ">=20.6" }
+}
